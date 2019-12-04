@@ -180,18 +180,24 @@ def print_table(file_scores, global_scores, n_digits=2,
         Table format. Passed to ``tabulate.tabulate``.
         (Default: 'simple')
     """
+    # col_names = ['File',
+    #              'DER', # Diarization error rate.
+    #              'JER', # Jaccard error rate.
+    #              'B3-Precision', # B-cubed precision.
+    #              'B3-Recall', # B-cubed recall.
+    #              'B3-F1', # B-cubed F1.
+    #              'GKT(ref, sys)', # Goodman-Krustal tau (ref, sys).
+    #              'GKT(sys, ref)', # Goodman-Kruskal tau (sys, ref).
+    #              'H(ref|sys)',  # Conditional entropy of ref given sys.
+    #              'H(sys|ref)',  # Conditional entropy of sys given ref.
+    #              'MI', # Mutual information.
+    #              'NMI', # Normalized mutual information.
+    #             ]
     col_names = ['File',
                  'DER', # Diarization error rate.
-                 'JER', # Jaccard error rate.
-                 'B3-Precision', # B-cubed precision.
-                 'B3-Recall', # B-cubed recall.
-                 'B3-F1', # B-cubed F1.
-                 'GKT(ref, sys)', # Goodman-Krustal tau (ref, sys).
-                 'GKT(sys, ref)', # Goodman-Kruskal tau (sys, ref).
-                 'H(ref|sys)',  # Conditional entropy of ref given sys.
-                 'H(sys|ref)',  # Conditional entropy of sys given ref.
-                 'MI', # Mutual information.
-                 'NMI', # Normalized mutual information.
+                 'Missed',
+                 'FA',
+                 'Confusion'
                 ]
     rows = sorted(file_scores, key=lambda x: x.file_id)
     rows.append(global_scores._replace(file_id='*** OVERALL ***'))
@@ -309,3 +315,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

@@ -150,6 +150,22 @@ class Scores(namedtuple(
     __slots__ = ()
 
 
+class Scores2(namedtuple(
+        'Scores',
+        ['file_id', 'der', 'missed', 'false_alarm', 'confusion'])):
+    """Structure containing metrics.
+
+    Parameters
+    ----------
+    file_id : str
+        File id for file scored.
+
+    der : float
+        Diarization error rate in percent.
+    """
+    __slots__ = ()
+
+
 def score(ref_turns, sys_turns, uem, step=0.010, nats=False, jer_min_ref_dur=0.0,
           **kwargs):
     """Score diarization.
@@ -228,30 +244,46 @@ def score(ref_turns, sys_turns, uem, step=0.010, nats=False, jer_min_ref_dur=0.0
     # consistency with how the clustering metrics were computed in DIHARD I.
 
     # Compute DER. This bit is slow as it relies on NIST's perl script.
-    file_to_der, global_der = metrics.der(
-        ref_turns, sys_turns, uem=uem, **kwargs)
+    (file_to_missed, global_missed,
+     file_to_false_alarms, global_false_alarms,
+     file_to_confusion, global_confusion,
+     file_to_der, global_der) = metrics.der(ref_turns, sys_turns, uem=uem, **kwargs)
 
     # Compute JER.
     file_to_jer, global_jer = metrics.jer(
         file_to_ref_durs, file_to_sys_durs, file_to_jer_cm, jer_min_ref_dur)
 
-    # Compute clustering metrics.
-    def compute_metrics(fid, cm, der, jer):
-        bcubed_precision, bcubed_recall, bcubed_f1 = metrics.bcubed(
-            None, None, cm)
-        tau_ref_sys, tau_sys_ref = metrics.goodman_kruskal_tau(
-            None, None, cm)
-        ce_ref_sys = metrics.conditional_entropy(None, None, cm, nats)
-        ce_sys_ref = metrics.conditional_entropy(None, None, cm.T, nats)
-        mi, nmi = metrics.mutual_information(None, None, cm, nats)
-        return Scores(
-            fid, der, jer, bcubed_precision, bcubed_recall, bcubed_f1,
-            tau_ref_sys, tau_sys_ref, ce_ref_sys, ce_sys_ref, mi, nmi)
+    # # Compute clustering metrics.
+    # def compute_metrics(fid, cm, der, jer):
+    #     bcubed_precision, bcubed_recall, bcubed_f1 = metrics.bcubed(
+    #         None, None, cm)
+    #     tau_ref_sys, tau_sys_ref = metrics.goodman_kruskal_tau(
+    #         None, None, cm)
+    #     ce_ref_sys = metrics.conditional_entropy(None, None, cm, nats)
+    #     ce_sys_ref = metrics.conditional_entropy(None, None, cm.T, nats)
+    #     mi, nmi = metrics.mutual_information(None, None, cm, nats)
+    #     return Scores(
+    #         fid, der, jer, bcubed_precision, bcubed_recall, bcubed_f1,
+    #         tau_ref_sys, tau_sys_ref, ce_ref_sys, ce_sys_ref, mi, nmi)
+
+    # file_scores = []
+    # for file_id, cm in iteritems(file_to_cm):
+    #     file_scores.append(compute_metrics(
+    #         file_id, cm, file_to_der[file_id], jer=file_to_jer[file_id]))
+    # global_scores = compute_metrics(
+    #     '*** OVERALL ***', global_cm, global_der, global_jer)
+
+    def compute_metrics2(fid, der, missed, false_alarm, confusion):
+        return Scores2(fid, der, missed, false_alarm, confusion)
+
     file_scores = []
     for file_id, cm in iteritems(file_to_cm):
-        file_scores.append(compute_metrics(
-            file_id, cm, file_to_der[file_id], jer=file_to_jer[file_id]))
-    global_scores = compute_metrics(
-        '*** OVERALL ***', global_cm, global_der, global_jer)
+        file_scores.append(compute_metrics2(
+            file_id, file_to_der[file_id], file_to_missed[file_id],
+            file_to_false_alarms[file_id], file_to_confusion[file_id]))
+    global_scores = compute_metrics2(
+        '*** OVERALL ***', global_der, global_missed,
+        global_false_alarms, global_confusion)
 
     return file_scores, global_scores
+

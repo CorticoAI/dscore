@@ -480,6 +480,25 @@ def der(ref_turns, sys_turns, collar=0.0, ignore_overlaps=False, uem=None):
     with np.errstate(invalid='ignore', divide='ignore'):
         error_times = miss_speaker_times + fa_speaker_times + error_speaker_times
         ders = error_times / scored_speaker_times
+
+################################################################################
+        missed = miss_speaker_times / scored_speaker_times
+        false_alarms = fa_speaker_times / scored_speaker_times
+        confusion = error_speaker_times / scored_speaker_times
+
+    missed[np.isnan(missed)] = 0 # Numerator and denominator both 0.
+    missed[np.isinf(missed)] = 1 # Numerator > 0, but denominator = 0.
+    missed *= 100. # Convert to percent.
+
+    false_alarms[np.isnan(false_alarms)] = 0 # Numerator and denominator both 0.
+    false_alarms[np.isinf(false_alarms)] = 1 # Numerator > 0, but denominator = 0.
+    false_alarms *= 100. # Convert to percent.
+
+    confusion[np.isnan(confusion)] = 0 # Numerator and denominator both 0.
+    confusion[np.isinf(confusion)] = 1 # Numerator > 0, but denominator = 0.
+    confusion *= 100. # Convert to percent.
+################################################################################
+
     ders[np.isnan(ders)] = 0 # Numerator and denominator both 0.
     ders[np.isinf(ders)] = 1 # Numerator > 0, but denominator = 0.
     ders *= 100. # Convert to percent.
@@ -487,10 +506,25 @@ def der(ref_turns, sys_turns, collar=0.0, ignore_overlaps=False, uem=None):
     # Reconcile with UEM, keeping in mind that in the edge case where no
     # reference turns are observed for a file, md-eval doesn't report results
     # for said file.
+
+################################################################################
+    file_to_missed_base = dict(zip(file_ids, missed))
+    file_to_false_alarms_base = dict(zip(file_ids, false_alarms))
+    file_to_confusion_base = dict(zip(file_ids, confusion))
+    file_to_missed = {}
+    file_to_false_alarms = {}
+    file_to_confusion = {}
+################################################################################
+
     file_to_der_base = dict(zip(file_ids, ders))
     file_to_der = {}
     for file_id in uem:
         try:
+################################################################################
+            missed = file_to_missed_base[file_id]
+            false_alarm = file_to_false_alarms_base[file_id]
+            confusion = file_to_confusion_base[file_id]
+################################################################################
             der = file_to_der_base[file_id]
         except KeyError:
             # Check for any system turns for that file, which should be FAs,
@@ -498,11 +532,27 @@ def der(ref_turns, sys_turns, collar=0.0, ignore_overlaps=False, uem=None):
             # regions.
             n_sys_turns = len(
                 [turn for turn in sys_turns if turn.file_id == file_id])
+################################################################################
+            missed = 100. if n_sys_turns else 0.0
+            false_alarm = 100. if n_sys_turns else 0.0
+            confusion = 100. if n_sys_turns else 0.0
+################################################################################
             der = 100. if n_sys_turns else 0.0
+        file_to_missed[file_id] = missed
+        file_to_false_alarms[file_id] = false_alarm
+        file_to_confusion[file_id] = confusion
         file_to_der[file_id] = der
+
+    global_missed = file_to_missed_base['ALL']
+    global_false_alarms = file_to_false_alarms_base['ALL']
+    global_confusion = file_to_confusion_base['ALL']
+
     global_der = file_to_der_base['ALL']
 
-    return file_to_der, global_der
+    return (file_to_missed, global_missed,
+            file_to_false_alarms, global_false_alarms,
+            file_to_confusion, global_confusion,
+            file_to_der, global_der)
 
 
 def jer(file_to_ref_durs, file_to_sys_durs, file_to_cm, min_ref_dur=0):
