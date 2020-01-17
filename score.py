@@ -204,6 +204,9 @@ def print_table(file_scores, global_scores, n_digits=2,
     floatfmt = '.%df' % n_digits
     tbl = tabulate(
         rows, headers=col_names, floatfmt=floatfmt, tablefmt=table_format)
+    os.makedirs('/score', exist_ok=True)
+    with open('/score/output.txt', 'w') as outfile:
+        print(tbl, file = outfile)
     print(tbl)
 
 
