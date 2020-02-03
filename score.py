@@ -160,8 +160,8 @@ def load_script_file(fn):
         return [line.decode('utf-8').strip() for line in f]
 
 
-def print_table(file_scores, global_scores, n_digits=2,
-                table_format='simple'):
+def print_table(file_scores, global_scores, output_filename,
+                n_digits=2, table_format='simple'):
     """Pretty print scores as table.
 
     Parameters
@@ -204,9 +204,10 @@ def print_table(file_scores, global_scores, n_digits=2,
     floatfmt = '.%df' % n_digits
     tbl = tabulate(
         rows, headers=col_names, floatfmt=floatfmt, tablefmt=table_format)
-    os.makedirs('/score', exist_ok=True)
-    with open('/score/output.txt', 'w') as outfile:
-        print(tbl, file = outfile)
+    if output_filename:
+        os.makedirs('/score', exist_ok=True)
+        with open(os.path.join('/score', output_filename), 'w') as outfile:
+            print(tbl, file = outfile)
     print(tbl)
 
 
@@ -256,6 +257,9 @@ def main():
         '--table_fmt', nargs=None, dest='table_format', default='simple',
         metavar='STR',
         help='tabulate table format (default: %(default)s)')
+    parser.add_argument(
+        '-o', '--output_filename', nargs=None, type=str, required=False,
+        help='name of output file for score tables')
     parser.add_argument(
         '--version', action='version',
         version='%(prog)s ' + VERSION)
@@ -313,7 +317,8 @@ def main():
         jer_min_ref_dur=args.jer_min_ref_dur, collar=args.collar,
         ignore_overlaps=args.ignore_overlaps)
     print_table(
-        file_scores, global_scores, args.n_digits, args.table_format)
+        file_scores, global_scores, args.output_filename,
+        args.n_digits, args.table_format)
 
 
 if __name__ == '__main__':
